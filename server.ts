@@ -63,7 +63,7 @@ function isValidNationalCode(code: string): boolean {
 }
 
 // Admin Password (simple config, no custom UI for API keys, in memory fallback)
-const ADMIN_PASSWORD = "admin"; // In a real app we'd load this safely
+const ADMIN_PASSWORD = "@Sorosh123#"; // In a real app we'd load this safely
 
 // API Route: Submit new data
 app.post("/api/submissions", (req, res) => {

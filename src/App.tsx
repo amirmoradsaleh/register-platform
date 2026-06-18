@@ -72,7 +72,30 @@ function toPersianDigits(num: string | number): string {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>("user");
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname.toLowerCase();
+      if (path.endsWith("/admin") || path.endsWith("/admin/")) {
+        return "admin";
+      }
+    }
+    return "user";
+  });
+
+  // Listen to path changes or browser back/forward buttons
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const path = window.location.pathname.toLowerCase();
+      if (path.endsWith("/admin") || path.endsWith("/admin/")) {
+        setActiveTab("admin");
+      } else {
+        setActiveTab("user");
+      }
+    };
+    handleUrlChange();
+    window.addEventListener("popstate", handleUrlChange);
+    return () => window.removeEventListener("popstate", handleUrlChange);
+  }, []);
   
   // Submit Form States
   const [nationalCode, setNationalCode] = useState("");
@@ -104,7 +127,7 @@ export default function App() {
     try {
       const response = await fetch("/api/submissions", {
         headers: {
-          "x-admin-password": adminPassword || "admin",
+          "x-admin-password": adminPassword || "@Sorosh123#",
         },
       });
       const resData = await response.json();
@@ -191,7 +214,7 @@ export default function App() {
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
-    if (adminPassword.trim() === "admin") {
+    if (adminPassword.trim() === "@Sorosh123#") {
       setIsAdminAuthenticated(true);
     } else {
       setAuthError("رمز عبور وارد شده نادرست است.");
@@ -344,33 +367,11 @@ export default function App() {
             </div>
           </div>
 
-          {/* Elegant Persian Tabs */}
-          <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200/50">
-            <button
-              onClick={() => setActiveTab("user")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                activeTab === "user"
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              <User className="h-4 w-4" />
-              پنل کاربر
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("admin");
-                setFormError("");
-              }}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                activeTab === "admin"
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              <ShieldCheck className="h-4 w-4" />
-              پنل مدیریت
-            </button>
+          {/* Mode Indicator/Help */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200/45">
+              {activeTab === "admin" ? "بخش مدیریت دیتابیس" : "فرم ثبت اطلاعات متقاضی"}
+            </span>
           </div>
 
         </div>
@@ -595,22 +596,12 @@ export default function App() {
                     </span>
                   )}
 
-                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                  <div className="pt-4 border-t border-slate-100 flex justify-center">
                     <button
                       onClick={() => setSubmitSuccess(null)}
-                      className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all w-full sm:w-auto cursor-pointer"
+                      className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-100 cursor-pointer"
                     >
                       ثبت پرونده یا کدملی جدید
-                    </button>
-                    <button
-                      onClick={() => {
-                        setActiveTab("admin");
-                        setSubmitSuccess(null);
-                      }}
-                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm w-full sm:w-auto flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <ShieldCheck className="h-4 w-4" />
-                      مشاهده در پنل ادمین
                     </button>
                   </div>
 
@@ -658,10 +649,6 @@ export default function App() {
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-indigo-500 transition-all text-center tracking-widest"
                       />
                     </div>
-
-                    <p className="text-[10px] text-indigo-500 font-semibold bg-indigo-50/50 p-2 text-center rounded-lg">
-                      💡 راهنما: جهت ورود سریع، رمز عبور پیش‌فرض واژه <span className="underline font-mono">admin</span> است.
-                    </p>
 
                     <button
                       type="submit"
@@ -810,11 +797,11 @@ export default function App() {
 
                   </div>
 
-                  {/* Main Grid: List table on the right/left and Edit box details */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Main Database Table Container */}
+                  <div className="w-full">
                     
                     {/* Database Submission Log Table */}
-                    <div className="bg-white rounded-xl border border-slate-150 shadow-sm overflow-hidden lg:col-span-2">
+                    <div className="bg-white rounded-xl border border-slate-150 shadow-sm overflow-hidden w-full">
                       <div className="overflow-x-auto">
                         <table className="w-full text-right text-xs">
                           <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 font-bold">
@@ -923,125 +910,137 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Left Panel: Review Detail / State Editor box */}
-                    <div className="bg-white rounded-xl border border-slate-150 shadow-sm p-5 space-y-4 h-fit">
-                      {editingItem ? (
-                        <form onSubmit={handleUpdateStatus} className="space-y-4">
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <h4 className="text-xs font-bold text-slate-800">بررسی و تعیین وضعیت پرونده</h4>
-                            <button 
-                              type="button" 
-                              onClick={() => setEditingItem(null)}
-                              className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-
-                          {/* Quick Summary */}
-                          <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-100 space-y-2 text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">کد ملی:</span>
-                              <span className="font-bold tracking-wider text-slate-800">
-                                {toPersianDigits(editingItem.nationalCode)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">تلفن همراه:</span>
-                              <span className="font-bold text-slate-800">{toPersianDigits(editingItem.phoneNumber)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">کد رهگیری:</span>
-                              <span className="font-mono bg-white border border-slate-200/60 px-1 py-0.5 rounded text-[10px] text-slate-700 font-bold">
-                                {editingItem.trackingCode}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Modify Status Select */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600 block">وضعیت جدید پرونده</label>
-                            <div className="grid grid-cols-3 gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setEditStatus("approved")}
-                                className={`py-2 rounded-lg text-[10px] font-bold cursor-pointer border text-center transition-all ${
-                                  editStatus === "approved"
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                                    : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
-                                }`}
-                              >
-                                تایید نهایی
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditStatus("pending")}
-                                className={`py-2 rounded-lg text-[10px] font-bold cursor-pointer border text-center transition-all ${
-                                  editStatus === "pending"
-                                    ? "bg-amber-50 text-amber-700 border-amber-300"
-                                    : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
-                                }`}
-                              >
-                                بررسی مجدد
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditStatus("rejected")}
-                                className={`py-2 rounded-lg text-[10px] font-bold cursor-pointer border text-center transition-all ${
-                                  editStatus === "rejected"
-                                    ? "bg-rose-50 text-rose-700 border-rose-300"
-                                    : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
-                                }`}
-                              >
-                                رد پرونده
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Admin Notes Field */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600 block">توضیحات و یادداشت ادمین</label>
-                            <textarea
-                              rows={3}
-                              placeholder="توضیحات یا علت رد صلاحیت..."
-                              value={editNotes}
-                              onChange={(e) => setEditNotes(e.target.value)}
-                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-400 transition-all resize-none"
-                            />
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex gap-2.5">
-                            <button
-                              type="submit"
-                              disabled={isUpdatingStatus}
-                              className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              {isUpdatingStatus && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                              ذخیره تغییرات
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingItem(null)}
-                              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition-all cursor-pointer"
-                            >
-                              انصراف
-                            </button>
-                          </div>
-
-                        </form>
-                      ) : (
-                        <div className="text-center py-12 text-slate-400 space-y-2">
-                          <SlidersHorizontal className="h-8 w-8 mx-auto text-slate-300" />
-                          <h5 className="text-xs font-bold text-slate-500">جزئیات پرونده انتخاب نشده است</h5>
-                          <p className="text-[10px] text-slate-400 leading-normal max-w-[200px] mx-auto">
-                            جهت بررسی اطلاعات متقاضی و ویرایش یادداشت‌ها، روی دکمه «بررسی» بر روی هر ردیف کلیک کنید
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
                   </div>
+
+                  {/* Admin Review Pop-up Modal */}
+                  <AnimatePresence>
+                    {editingItem && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop with elegant blur */}
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setEditingItem(null)}
+                          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        />
+                        
+                        {/* Pop-up Box Content */}
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                          transition={{ duration: 0.2 }}
+                          className="relative bg-white rounded-2xl border border-slate-150 shadow-xl p-6 w-full max-w-md z-10 space-y-4 text-right"
+                        >
+                          <form onSubmit={handleUpdateStatus} className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                              <h4 className="text-sm font-bold text-slate-800">بررسی و تعیین وضعیت پرونده</h4>
+                              <button 
+                                type="button" 
+                                onClick={() => setEditingItem(null)}
+                                className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-slate-50 transition-colors"
+                              >
+                                <X className="h-4.5 w-4.5" />
+                              </button>
+                            </div>
+
+                            {/* Quick Summary */}
+                            <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-100 space-y-2 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-slate-400 font-medium">کد ملی:</span>
+                                <span className="font-bold tracking-wider text-slate-800">
+                                  {toPersianDigits(editingItem.nationalCode)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400 font-medium">تلفن همراه:</span>
+                                <span className="font-bold text-slate-800">{toPersianDigits(editingItem.phoneNumber)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400 font-medium">کد رهگیری:</span>
+                                <span className="font-mono bg-white border border-slate-200/60 px-1 py-0.5 rounded text-[10px] text-slate-700 font-bold">
+                                  {editingItem.trackingCode}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Modify Status Select */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-600 block">وضعیت جدید پرونده</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditStatus("approved")}
+                                  className={`py-2 rounded-lg text-[10px] font-bold cursor-pointer border text-center transition-all ${
+                                    editStatus === "approved"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                      : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
+                                  }`}
+                                >
+                                  تایید نهایی
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditStatus("pending")}
+                                  className={`py-2 rounded-lg text-[10px] font-bold cursor-pointer border text-center transition-all ${
+                                    editStatus === "pending"
+                                      ? "bg-amber-50 text-amber-700 border-amber-300"
+                                      : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
+                                  }`}
+                                >
+                                  بررسی مجدد
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditStatus("rejected")}
+                                  className={`py-2 rounded-lg text-[10px] font-bold cursor-pointer border text-center transition-all ${
+                                    editStatus === "rejected"
+                                      ? "bg-rose-50 text-rose-700 border-rose-300"
+                                      : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
+                                  }`}
+                                >
+                                  رد پرونده
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Admin Notes Field */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-600 block">توضیحات و یادداشت ادمین</label>
+                              <textarea
+                                rows={3}
+                                placeholder="توضیحات یا علت رد صلاحیت..."
+                                value={editNotes}
+                                onChange={(e) => setEditNotes(e.target.value)}
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-indigo-400 transition-all resize-none"
+                              />
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2.5 pt-2">
+                              <button
+                                type="submit"
+                                disabled={isUpdatingStatus}
+                                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                {isUpdatingStatus && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                                ذخیره تغییرات
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingItem(null)}
+                                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                              >
+                                انصراف
+                              </button>
+                            </div>
+
+                          </form>
+                        </motion.div>
+                      </div>
+                    )}
+                  </AnimatePresence>
 
                 </div>
               )}
