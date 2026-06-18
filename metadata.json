@@ -1,0 +1,6 @@
+{
+  "name": "National Tracking Portal",
+  "description": "A Persian tracking system for national code, tracking code, and mobile inputs with a secure admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
