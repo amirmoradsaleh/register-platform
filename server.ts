@@ -35,7 +35,9 @@ function readSubmissions(): Submission[] {
 
 function writeSubmissions(submissions: Submission[]) {
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2), "utf-8");
+    // Keep only the newest 400 (since we unshift new ones, newer are at the start)
+    const limited = submissions.slice(0, 400);
+    fs.writeFileSync(DATA_FILE, JSON.stringify(limited, null, 2), "utf-8");
   } catch (error) {
     console.error("Error writing submissions file:", error);
   }
@@ -145,6 +147,17 @@ app.put("/api/submissions/:id", (req, res) => {
 
   writeSubmissions(submissions);
   res.json({ success: true, data: submissions[index] });
+});
+
+// API Route: Delete all submissions
+app.delete("/api/submissions", (req, res) => {
+  const authHeader = req.headers["x-admin-password"];
+  if (authHeader !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "عدم دسترسی" });
+  }
+
+  writeSubmissions([]);
+  res.json({ success: true, message: "تمامی اطلاعات با موفقیت حذف شدند" });
 });
 
 // API Route: Delete submission
