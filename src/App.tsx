@@ -402,7 +402,7 @@ export default function App() {
               <Database className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-slate-800 tracking-tight">سامانه ثبت و پیگیری کدملی</h1>
+              <h1 className="text-base font-bold text-slate-800 tracking-tight">سامانه ثبت و پیگیری</h1>
               <p className="text-[11px] text-slate-400 font-medium">ساده، مینیمال و امن</p>
             </div>
           </div>
