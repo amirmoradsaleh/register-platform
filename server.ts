@@ -5,7 +5,8 @@ import { createServer as createViteServer } from "vite";
 
 const app = express();
 const PORT = 3000;
-const DATA_FILE = path.join(process.cwd(), "submissions.json");
+const DATA_FILE = "/tmp/submissions.json";
+const BACKUP_DATA_FILE = path.join(process.cwd(), "submissions.json");
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -26,6 +27,13 @@ function readSubmissions(): Submission[] {
     if (fs.existsSync(DATA_FILE)) {
       const data = fs.readFileSync(DATA_FILE, "utf-8");
       return JSON.parse(data);
+    } else if (fs.existsSync(BACKUP_DATA_FILE)) {
+      const data = fs.readFileSync(BACKUP_DATA_FILE, "utf-8");
+      try {
+        fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
+      } catch (e) {}
+      fs.writeFileSync(DATA_FILE, data, "utf-8");
+      return JSON.parse(data);
     }
   } catch (error) {
     console.error("Error reading submissions file:", error);
@@ -35,8 +43,10 @@ function readSubmissions(): Submission[] {
 
 function writeSubmissions(submissions: Submission[]) {
   try {
-    // Keep only the newest 400 (since we unshift new ones, newer are at the start)
     const limited = submissions.slice(0, 400);
+    try {
+      fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
+    } catch (e) {}
     fs.writeFileSync(DATA_FILE, JSON.stringify(limited, null, 2), "utf-8");
   } catch (error) {
     console.error("Error writing submissions file:", error);
