@@ -107,9 +107,15 @@ export default function App() {
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Admin Auth States
-  const [adminPassword, setAdminPassword] = useState("");
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminPassword, setAdminPassword] = useState(() => {
+    return localStorage.getItem("admin_password") || "";
+  });
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    const saved = localStorage.getItem("admin_password") || "";
+    return saved === "@Sorosh123#";
+  });
   const [authError, setAuthError] = useState("");
+  const [newSubNotification, setNewSubNotification] = useState<Submission | null>(null);
 
   // Admin Panel States
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -134,15 +140,27 @@ export default function App() {
     try {
       const response = await fetch("/api/submissions", {
         headers: {
-          "x-admin-password": adminPassword || "@Sorosh123#",
+          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
         },
       });
       const resData = await response.json();
       if (response.ok && resData.success) {
-        setSubmissions(resData.data);
+        const newData = resData.data as Submission[];
+        setSubmissions((prev) => {
+          // Detect newly added items if we already have some submissions loaded and we are currently on the admin tab & authenticated
+          if (prev.length > 0 && activeTab === "admin" && isAdminAuthenticated) {
+            const prevIds = new Set(prev.map((s) => s.id));
+            const newItems = newData.filter((s) => !prevIds.has(s.id));
+            if (newItems.length > 0) {
+              setNewSubNotification(newItems[0]);
+            }
+          }
+          return newData;
+        });
       } else {
         setAuthError(resData.error || "خطا در بارگذاری اطلاعات");
         setIsAdminAuthenticated(false);
+        localStorage.removeItem("admin_password");
       }
     } catch (err) {
       console.error(err);
@@ -221,12 +239,32 @@ export default function App() {
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
-    if (adminPassword.trim() === "@Sorosh123#") {
+    const cleanPassword = adminPassword.trim();
+    if (cleanPassword === "@Sorosh123#") {
+      localStorage.setItem("admin_password", cleanPassword);
       setIsAdminAuthenticated(true);
     } else {
       setAuthError("رمز عبور وارد شده نادرست است.");
     }
   };
+
+  // Auto-refresh submissions list every 30 seconds when authenticated (Requirement 2)
+  useEffect(() => {
+    if (!isAdminAuthenticated) return;
+
+    const intervalId = setInterval(() => {
+      fetchSubmissions();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [isAdminAuthenticated, adminPassword]);
+
+  // Clear new submission notification modal if user switches the active tab or logs out
+  useEffect(() => {
+    if (activeTab !== "admin" || !isAdminAuthenticated) {
+      setNewSubNotification(null);
+    }
+  }, [activeTab, isAdminAuthenticated]);
 
   // Seed mockup elements to make it lively
   const handleSeedMockData = async () => {
@@ -403,7 +441,6 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-base font-bold text-slate-800 tracking-tight">سامانه ثبت و پیگیری</h1>
-              <p className="text-[11px] text-slate-400 font-medium">ساده، مینیمال و امن</p>
             </div>
           </div>
 
@@ -717,11 +754,20 @@ export default function App() {
 
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={fetchSubmissions}
+                        disabled={isLoadingSubmissions}
+                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1 disabled:opacity-75 cursor-pointer"
+                        title="به‌روزرسانی دستی کل اطلاعات جدول"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isLoadingSubmissions ? "animate-spin" : ""}`} />
+                        به‌روزرسانی جدول
+                      </button>
+                      <button
                         onClick={handleSeedMockData}
                         className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                         title="ایجاد چند داده اجمالی برای نمایش در جدول"
                       >
-                        <RefreshCw className="h-3.5 w-3.5" />
+                        <Plus className="h-3.5 w-3.5" />
                         ایجاد داده آزمایشی
                       </button>
                       <button
@@ -745,6 +791,7 @@ export default function App() {
                         onClick={() => {
                           setIsAdminAuthenticated(false);
                           setAdminPassword("");
+                          localStorage.removeItem("admin_password");
                         }}
                         className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                       >
@@ -1139,12 +1186,90 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* New Submission Notification Alert Popup (Requirement 4) - Large Centered Modal with Interaction Blocker Backdrop */}
+        <AnimatePresence>
+          {newSubNotification && activeTab === "admin" && isAdminAuthenticated && (
+            <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
+              {/* Interaction blocker backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-slate-900/65 backdrop-blur-md"
+              />
+
+              {/* Large Centered Modal Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ type: "spring", duration: 0.4 }}
+                className="relative bg-white rounded-3xl shadow-2xl border-2 border-emerald-500/30 max-w-lg w-full p-6 md:p-8 text-right overflow-hidden z-10"
+              >
+                {/* Decorative Accent Ribbon */}
+                <div className="absolute top-0 right-0 left-0 h-2 bg-emerald-500" />
+
+                {/* Banner Header */}
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-4 mb-5">
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
+                    <CheckCircle className="h-7 w-7 animate-bounce" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-800">دریافت پرونده جدید متقاضی!</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">یک تراکنش جدید با موفقیت به پایگاه داده اضافه شد</p>
+                  </div>
+                </div>
+
+                {/* Displaying all 3 Variables */}
+                <div className="space-y-3.5 mb-6">
+                  
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between">
+                    <span className="text-base font-black text-slate-800 select-all">
+                      {toPersianDigits(newSubNotification.nationalCode)}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                      کد ملی متقاضی
+                      <CreditCard className="h-4 w-4 text-indigo-500" />
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between">
+                    <span className="text-base font-black text-slate-800 select-all">
+                      {toPersianDigits(newSubNotification.phoneNumber)}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                      تلفن همراه همراه
+                      <Phone className="h-4 w-4 text-emerald-500" />
+                    </span>
+                  </div>
+
+                  <div className="bg-indigo-50/55 p-4 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                    <span className="text-[17px] font-mono text-indigo-700 font-extrabold select-all tracking-wider">
+                      {newSubNotification.trackingCode}
+                    </span>
+                    <span className="text-xs font-extrabold text-indigo-700 flex items-center gap-1.5">
+                      کد رهگیری اختصاصی
+                      <ClipboardCheck className="h-4 w-4 text-indigo-600" />
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Confirm & Close Button */}
+                <button
+                  onClick={() => setNewSubNotification(null)}
+                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-2xl text-xs transition-all shadow-lg hover:shadow-slate-200 active:scale-[0.99] cursor-pointer text-center flex items-center justify-center gap-1.5"
+                >
+                  <X className="h-4 w-4" />
+                  متوجه شدم، بستن این اعلان
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       </main>
 
-      {/* Footer Branding */}
-      <footer className="py-6 border-t border-slate-100 text-center">
-        <p className="text-[10px] text-slate-400 font-medium">© طراحی با بالاترین کیفیت و اصول مینیمال فرانت‌اند - ۱۴۰۵</p>
-      </footer>
     </div>
   );
 }
