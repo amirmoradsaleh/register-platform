@@ -500,7 +500,7 @@ export default function App() {
           {/* Mode Indicator/Help */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200/45">
-              {activeTab === "admin" ? "بخش مدیریت دیتابیس" : "فرم ثبت اطلاعات متقاضی"}
+              {activeTab === "admin" ? "بخش مدیریت دیتابیس" : "فرم ثبت اطلاعات بیمار"}
             </span>
           </div>
 
@@ -528,8 +528,8 @@ export default function App() {
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-indigo-50 text-indigo-700 mb-3">
                       بخش مراجعین حضوری و غیرحضوری
                     </span>
-                    <h2 className="text-xl font-extrabold text-slate-800">ثبت فرم مشخصات جدید</h2>
-                    <p className="text-xs text-slate-400 mt-1.5">لطفاً اطلاعات زیر را با دقت و با کاراکترهای انگلیسی یا فارسی وارد کنید</p>
+                    <h2 className="text-xl font-extrabold text-slate-800">فرم ثبت مشخصات بیمار</h2>
+                    <p className="text-xs text-slate-400 mt-1.5">لطفاً اطلاعات زیر را با دقت وارد کنید</p>
                   </div>
 
                   {/* Form Component */}
@@ -550,7 +550,7 @@ export default function App() {
                     {/* Field 1: National Code */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-600 block">
-                        کد ملی متقاضی <span className="text-rose-400">*</span>
+                        کد ملی بیمار <span className="text-rose-400">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -578,7 +578,7 @@ export default function App() {
                       
                       {/* Interactive Help */}
                       <div className="flex justify-between items-center px-1">
-                        <span className="text-[10px] text-slate-400">کد ملی ده رقمی معتبر به همراه کنترل رقم آخر</span>
+                        <span className="text-[10px] text-slate-400">کد ملی ده رقمی معتبر</span>
                         {showNationalCodeFeedback && (
                           <span className={`text-[10px] font-bold ${isNCValid ? "text-emerald-600" : "text-rose-500"}`}>
                             {isNCValid ? "✓ تأیید ساختار شماره" : "✗ ساختار شماره نادرست است"}
@@ -616,7 +616,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex justify-between items-center px-1">
-                        <span className="text-[10px] text-slate-400">شماره موبایل فعال متقاضی (مثال: ۰۹۱۲۳۴۵۶۷۸۹)</span>
+                        <span className="text-[10px] text-slate-400">شماره موبایل فعال بیمار (مثال: ۰۹۱۲۳۴۵۶۷۸۹)</span>
                         {showPhoneFeedback && (
                           <span className={`text-[10px] font-bold ${isPhoneValid ? "text-emerald-600" : "text-rose-500"}`}>
                             {isPhoneValid ? "✓ درست" : "✗ شماره نامعتبر"}
@@ -631,14 +631,6 @@ export default function App() {
                         <label className="text-xs font-semibold text-slate-600">
                           کد رهگیری پرونده <span className="text-rose-400">*</span>
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => setTrackingCode(generateRandomTrackingCode())}
-                          className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
-                        >
-                          <Plus className="h-3 w-3" />
-                          ایجاد کد تصادفی پرونده
-                        </button>
                       </div>
                       <div className="relative">
                         <input
@@ -649,7 +641,6 @@ export default function App() {
                           className="w-full px-4 py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold tracking-wide transition-all outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                         />
                       </div>
-                      <span className="text-[10px] text-slate-400 block px-1">مقدار شناسه رهگیری را به صورت دلخواه وارد کرده یا از کد تولیدشده استفاده کنید.</span>
                     </div>
 
                     {/* Submit Bar Button */}
@@ -666,7 +657,7 @@ export default function App() {
                       ) : (
                         <>
                           <CheckCircle className="h-5 w-5" />
-                          <span>ثبت نهایی اطلاعات پرونده</span>
+                          <span>ثبت نهایی اطلاعات بیمار</span>
                         </>
                       )}
                     </button>
@@ -883,7 +874,7 @@ export default function App() {
                         <table className="w-full text-right text-xs">
                           <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 font-bold">
                             <tr>
-                              <th className="px-4 py-3.5">کد ملی متقاضی</th>
+                              <th className="px-4 py-3.5">کد ملی بیمار</th>
                               <th className="px-4 py-3.5">کد رهگیری</th>
                               <th className="px-4 py-3.5">تلفن همراه</th>
                               <th className="px-4 py-3.5">تاریخ ثبت</th>
@@ -1196,7 +1187,7 @@ export default function App() {
                     <CheckCircle className="h-7 w-7 animate-bounce" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-slate-800">دریافت پرونده جدید متقاضی!</h3>
+                    <h3 className="text-base font-black text-slate-800">دریافت پرونده جدید بیمار!</h3>
                     <p className="text-xs text-slate-400 mt-0.5">یک تراکنش جدید با موفقیت به پایگاه داده اضافه شد</p>
                   </div>
                 </div>
@@ -1209,7 +1200,7 @@ export default function App() {
                       {toPersianDigits(newSubNotification.nationalCode)}
                     </span>
                     <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-                      کد ملی متقاضی
+                      کد ملی بیمار
                       <CreditCard className="h-4 w-4 text-indigo-500" />
                     </span>
                   </div>
@@ -1277,7 +1268,7 @@ export default function App() {
                     <Trash2 className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-800">حذف پرونده متقاضی</h3>
+                    <h3 className="text-sm font-black text-slate-800">حذف پرونده بیمار</h3>
                     <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                       آیا از حذف کامل این پرونده ثبت شده اطمینان دارید؟ این عمل غیرقابل بازگشت است.
                     </p>
@@ -1422,7 +1413,7 @@ export default function App() {
                       {toPersianDigits(submitSuccess.nationalCode)}
                     </span>
                     <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-                      کد ملی متقاضی
+                      کد ملی بیمار
                       <CreditCard className="h-4 w-4 text-indigo-500" />
                     </span>
                   </div>
