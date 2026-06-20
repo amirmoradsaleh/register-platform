@@ -440,7 +440,7 @@ export default function App() {
               <Database className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-slate-800 tracking-tight">سامانه ثبت و پیگیری</h1>
+              <h1 className="text-base font-bold text-slate-800 tracking-tight">فرم مشخصات بیمار</h1>
             </div>
           </div>
 
