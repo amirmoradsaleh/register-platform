@@ -117,6 +117,7 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [newSubNotification, setNewSubNotification] = useState<Submission | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   // Admin Panel States
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -404,7 +405,7 @@ export default function App() {
 
   // Delete all submissions
   const handleDeleteAllSubmissions = async () => {
-    if (!confirm("آیا از حذف تمامی پرونده‌ها اطمینان کامل دارید؟ این عمل غیرقابل بازگشت است و تمام رکوردها پاک می‌شوند.")) return;
+    setShowDeleteAllConfirm(false);
 
     try {
       const response = await fetch("/api/submissions", {
@@ -821,6 +822,15 @@ export default function App() {
                       >
                         <Download className="h-3.5 w-3.5" />
                         خروجی اکسل (CSV)
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteAllConfirm(true)}
+                        disabled={submissions.length === 0}
+                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/55 text-xs font-bold rounded-lg transition-all flex items-center gap-1 disabled:opacity-40 cursor-pointer"
+                        title="پاکسازی کامل تمام اطلاعات ثبت شده"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        حذف همه
                       </button>
                       <button
                         onClick={() => {
@@ -1347,6 +1357,63 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setDeleteConfirmId(null)}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer"
+                  >
+                    انصراف
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Custom Delete All Confirmation Modal */}
+        <AnimatePresence>
+          {showDeleteAllConfirm && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowDeleteAllConfirm(false)}
+                className="absolute inset-0 bg-slate-900/65 backdrop-blur-md"
+              />
+
+              {/* Modal Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="relative bg-white rounded-2xl shadow-2xl border border-rose-100 max-w-sm w-full p-6 text-right overflow-hidden z-[70]"
+              >
+                {/* Decorative Red Accent Ribbon */}
+                <div className="absolute top-0 right-0 left-0 h-1.5 bg-rose-600 animate-pulse" />
+
+                <div className="flex items-start gap-3.5 mt-2">
+                  <div className="p-2.5 bg-rose-100 text-rose-600 rounded-xl shrink-0">
+                    <Trash2 className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800">حذف تمامی پرونده‌ها</h3>
+                    <p className="text-xs text-rose-500 font-bold mt-1 leading-relaxed">
+                      توجه: این عمل غیرقابل بازگشت است!
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      آیا از حذف کامل تمامی پرونده‌های ثبت‌ شده در سامانه اطمینان کامل دارید؟ کلیه اطلاعات پاکسازی خواهند شد.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 mt-6">
+                  <button
+                    onClick={handleDeleteAllSubmissions}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-rose-100 transition-all text-center cursor-pointer"
+                  >
+                    بله، حذف کل دیتابیس
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteAllConfirm(false)}
                     className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer"
                   >
                     انصراف
