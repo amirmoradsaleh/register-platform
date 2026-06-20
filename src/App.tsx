@@ -299,7 +299,7 @@ export default function App() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-password": adminPassword,
+          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
         },
         body: JSON.stringify({
           status: editStatus,
@@ -331,7 +331,7 @@ export default function App() {
       const response = await fetch(`/api/submissions/${id}`, {
         method: "DELETE",
         headers: {
-          "x-admin-password": adminPassword,
+          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
         },
       });
 
@@ -358,7 +358,7 @@ export default function App() {
       const response = await fetch("/api/submissions", {
         method: "DELETE",
         headers: {
-          "x-admin-password": adminPassword,
+          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
         },
       });
 
@@ -763,29 +763,12 @@ export default function App() {
                         به‌روزرسانی جدول
                       </button>
                       <button
-                        onClick={handleSeedMockData}
-                        className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
-                        title="ایجاد چند داده اجمالی برای نمایش در جدول"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        ایجاد داده آزمایشی
-                      </button>
-                      <button
                         onClick={exportToCSV}
                         disabled={submissions.length === 0}
                         className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all flex items-center gap-1 disabled:opacity-40 cursor-pointer"
                       >
                         <Download className="h-3.5 w-3.5" />
                         خروجی اکسل (CSV)
-                      </button>
-                      <button
-                        onClick={handleDeleteAllSubmissions}
-                        disabled={submissions.length === 0}
-                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/55 text-xs font-bold rounded-lg transition-all flex items-center gap-1 disabled:opacity-40 cursor-pointer"
-                        title="حذف تمامی اطلاعات ثبت شده"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        حذف همه
                       </button>
                       <button
                         onClick={() => {
