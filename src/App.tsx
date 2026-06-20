@@ -521,11 +521,10 @@ export default function App() {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="w-full max-w-xl"
             >
-              {!submitSuccess ? (
-                <div className="bg-white rounded-2xl border border-slate-150 shadow-sm overflow-hidden p-6 md:p-8">
-                  
-                  {/* Form Headline */}
-                  <div className="text-center mb-8">
+              <div className="bg-white rounded-2xl border border-slate-150 shadow-sm overflow-hidden p-6 md:p-8">
+                
+                {/* Form Headline */}
+                <div className="text-center mb-8">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-indigo-50 text-indigo-700 mb-3">
                       بخش مراجعین حضوری و غیرحضوری
                     </span>
@@ -674,69 +673,6 @@ export default function App() {
 
                   </form>
                 </div>
-              ) : (
-                
-                /* Success screen card */
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-2xl border border-slate-150 shadow-sm overflow-hidden p-8 text-center space-y-6"
-                >
-                  <div className="inline-flex h-16 w-16 items-center justify-center bg-emerald-50 rounded-full text-emerald-500 mb-2">
-                    <CheckCircle className="h-10 w-10 animate-bounce" />
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-xl font-extrabold text-slate-800">اطلاعات شما با موفقیت ثبت شد</h3>
-                    <p className="text-xs text-slate-400 mt-2">پرونده شما در بانک اطلاعاتی ایجاد شد و آماده بررسی توسط مدیریت است</p>
-                  </div>
-
-                  {/* Registered Details display */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-right space-y-3.5 max-w-sm mx-auto">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400 font-medium">کد ملی ثبت شده:</span>
-                      <span className="font-bold text-slate-800 tracking-wider">
-                        {toPersianDigits(submitSuccess.nationalCode)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400 font-medium">شماره تلفن همراه:</span>
-                      <span className="font-bold text-slate-800 tracking-wider">
-                        {toPersianDigits(submitSuccess.phoneNumber)}
-                      </span>
-                    </div>
-                    <div className="border-t border-slate-200/60 pt-3 flex justify-between items-center">
-                      <span className="text-xs text-indigo-600 font-bold">کد رهگیری نهایی شما:</span>
-                      <div className="flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-150">
-                        <span className="text-xs font-mono font-bold text-indigo-700 tracking-widest">{submitSuccess.trackingCode}</span>
-                        <button 
-                          onClick={() => handleCopyCode(submitSuccess.trackingCode)}
-                          className="text-indigo-400 hover:text-indigo-600 cursor-pointer"
-                          title="کپی در حافظه"
-                        >
-                          <ClipboardCheck className={`h-4 w-4 ${copiedCode ? "text-emerald-500" : ""}`} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {copiedCode && (
-                    <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-3 py-1 rounded-full inline-block">
-                      کد رهگیری با موفقیت در حافظه کپی شد
-                    </span>
-                  )}
-
-                  <div className="pt-4 border-t border-slate-100 flex justify-center">
-                    <button
-                      onClick={() => setSubmitSuccess(null)}
-                      className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-100 cursor-pointer"
-                    >
-                      ثبت پرونده یا کدملی جدید
-                    </button>
-                  </div>
-
-                </motion.div>
-              )}
             </motion.div>
           )}
 
@@ -1419,6 +1355,122 @@ export default function App() {
                     انصراف
                   </button>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Patient Registration Success Modal Popup */}
+        <AnimatePresence>
+          {submitSuccess && activeTab === "user" && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Overlay Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  setSubmitSuccess(null);
+                  setNationalCode("");
+                  setTrackingCode("");
+                  setPhoneNumber("");
+                }}
+                className="absolute inset-0 bg-slate-900/65 backdrop-blur-md"
+              />
+
+              {/* Success Info Card */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                transition={{ type: "spring", duration: 0.4 }}
+                className="relative bg-white rounded-3xl shadow-2xl border border-emerald-100 max-w-md w-full p-6 md:p-8 text-right overflow-hidden z-10"
+              >
+                {/* Decorative Accent Header Border */}
+                <div className="absolute top-0 right-0 left-0 h-2 bg-emerald-550" />
+
+                {/* Banner Brand Header */}
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-4 mb-5">
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
+                    <CheckCircle className="h-7 w-7 animate-bounce" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-800">مشخصات شما با موفقیت ثبت شد</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">پرونده پزشکی شما ایجاد گردید و آماده ارزیابی نهایی است</p>
+                  </div>
+                </div>
+
+                {/* Patient Information Fields */}
+                <div className="space-y-3.5 mb-6">
+                  
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 flex items-center justify-between">
+                    <span className="text-base font-black text-slate-800 select-all tracking-wider">
+                      {toPersianDigits(submitSuccess.nationalCode)}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                      کد ملی متقاضی
+                      <CreditCard className="h-4 w-4 text-indigo-500" />
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 flex items-center justify-between">
+                    <span className="text-base font-black text-slate-800 select-all tracking-wider animate-pulse">
+                      {toPersianDigits(submitSuccess.phoneNumber)}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                      شماره همراه بیمار
+                      <Phone className="h-4 w-4 text-emerald-500" />
+                    </span>
+                  </div>
+
+                  <div className="bg-indigo-50/45 p-4 rounded-xl border border-indigo-100 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[17px] font-mono text-indigo-700 font-extrabold select-all tracking-wider uppercase">
+                        {submitSuccess.trackingCode}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+                      کد رهگیری اختصاصی
+                      <ClipboardCheck className="h-4 w-4 text-indigo-600" />
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Clipboard Toast Indicator */}
+                {copiedCode && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-[11px] font-extrabold py-2.5 rounded-xl text-center mb-5"
+                  >
+                    کد رهگیری اختصاصی کپی شد. لطفاً آن را نگه دارید.
+                  </motion.div>
+                )}
+
+                {/* Footer Action items */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleCopyCode(submitSuccess.trackingCode)}
+                    className="flex-1 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-extrabold rounded-xl transition-all border border-indigo-150 text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    کپی کد رهگیری
+                    <ClipboardCheck className="h-4 w-4 text-indigo-600" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSubmitSuccess(null);
+                      setNationalCode("");
+                      setTrackingCode("");
+                      setPhoneNumber("");
+                    }}
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-all shadow-md shadow-emerald-50 text-center cursor-pointer"
+                  >
+                    بستن و ثبت نام جدید
+                  </button>
+                </div>
+
               </motion.div>
             </div>
           )}
