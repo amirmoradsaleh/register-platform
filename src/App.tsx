@@ -140,19 +140,34 @@ export default function App() {
     try {
       const response = await fetch("/api/submissions", {
         headers: {
-          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
+          "x-admin-password": (adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#").trim(),
         },
       });
       const resData = await response.json();
       if (response.ok && resData.success) {
         const newData = resData.data as Submission[];
         setSubmissions((prev) => {
-          // Detect newly added items if we already have some submissions loaded and we are currently on the admin tab & authenticated
-          if (prev.length > 0 && activeTab === "admin" && isAdminAuthenticated) {
-            const prevIds = new Set(prev.map((s) => s.id));
-            const newItems = newData.filter((s) => !prevIds.has(s.id));
-            if (newItems.length > 0) {
-              setNewSubNotification(newItems[0]);
+          // Detect newly added items (including those added while admin was away)
+          if (activeTab === "admin" && isAdminAuthenticated) {
+            const rawSeen = localStorage.getItem("seen_submission_ids");
+            let seenIds: string[] = [];
+            try {
+              seenIds = rawSeen ? JSON.parse(rawSeen) : [];
+            } catch (e) {
+              seenIds = [];
+            }
+
+            if (!rawSeen) {
+              // First time: initialize seenIds with all current IDs so we don't notify for old records
+              const currentIds = newData.map((s) => s.id);
+              localStorage.setItem("seen_submission_ids", JSON.stringify(currentIds));
+            } else {
+              // Find submissions that are unseen
+              const unseen = newData.filter((s) => !seenIds.includes(s.id));
+              if (unseen.length > 0) {
+                // Show the newest unseen submission
+                setNewSubNotification(unseen[0]);
+              }
             }
           }
           return newData;
@@ -170,12 +185,12 @@ export default function App() {
     }
   };
 
-  // Run initial state recovery for admin if already logged in
+  // Run state recovery for admin if logged in
   useEffect(() => {
-    if (isAdminAuthenticated) {
+    if (isAdminAuthenticated && activeTab === "admin") {
       fetchSubmissions();
     }
-  }, [isAdminAuthenticated]);
+  }, [isAdminAuthenticated, activeTab]);
 
   // Handle Form Submission
   const handleUserSubmit = async (e: React.FormEvent) => {
@@ -242,6 +257,7 @@ export default function App() {
     const cleanPassword = adminPassword.trim();
     if (cleanPassword === "@Sorosh123#") {
       localStorage.setItem("admin_password", cleanPassword);
+      setAdminPassword(cleanPassword);
       setIsAdminAuthenticated(true);
     } else {
       setAuthError("رمز عبور وارد شده نادرست است.");
@@ -265,6 +281,23 @@ export default function App() {
       setNewSubNotification(null);
     }
   }, [activeTab, isAdminAuthenticated]);
+
+  // Save notification as marked seen to avoid repeating on reload/entry
+  const handleCloseNotification = () => {
+    if (newSubNotification) {
+      const rawSeen = localStorage.getItem("seen_submission_ids");
+      let seenIds: string[] = [];
+      try {
+        seenIds = rawSeen ? JSON.parse(rawSeen) : [];
+      } catch (e) {
+        seenIds = [];
+      }
+      
+      const allIds = new Set([...seenIds, newSubNotification.id, ...submissions.map((s) => s.id)]);
+      localStorage.setItem("seen_submission_ids", JSON.stringify(Array.from(allIds)));
+    }
+    setNewSubNotification(null);
+  };
 
   // Seed mockup elements to make it lively
   const handleSeedMockData = async () => {
@@ -299,7 +332,7 @@ export default function App() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
+          "x-admin-password": (adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#").trim(),
         },
         body: JSON.stringify({
           status: editStatus,
@@ -331,12 +364,24 @@ export default function App() {
       const response = await fetch(`/api/submissions/${id}`, {
         method: "DELETE",
         headers: {
-          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
+          "x-admin-password": (adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#").trim(),
         },
       });
 
       const resData = await response.json();
       if (response.ok && resData.success) {
+        // Add deleted ID to seen List so it's not suggested as a notification anymore
+        const rawSeen = localStorage.getItem("seen_submission_ids");
+        let seenIds: string[] = [];
+        try {
+          seenIds = rawSeen ? JSON.parse(rawSeen) : [];
+        } catch (e) {
+          seenIds = [];
+        }
+        if (!seenIds.includes(id)) {
+          localStorage.setItem("seen_submission_ids", JSON.stringify([...seenIds, id]));
+        }
+
         fetchSubmissions();
         if (editingItem?.id === id) {
           setEditingItem(null);
@@ -358,7 +403,7 @@ export default function App() {
       const response = await fetch("/api/submissions", {
         method: "DELETE",
         headers: {
-          "x-admin-password": adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#",
+          "x-admin-password": (adminPassword || localStorage.getItem("admin_password") || "@Sorosh123#").trim(),
         },
       });
 
@@ -1240,7 +1285,7 @@ export default function App() {
 
                 {/* Confirm & Close Button */}
                 <button
-                  onClick={() => setNewSubNotification(null)}
+                  onClick={handleCloseNotification}
                   className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl text-xs transition-all shadow-lg shadow-indigo-100 active:scale-[0.99] cursor-pointer text-center flex items-center justify-center gap-1.5"
                 >
                   <X className="h-4 w-4" />
