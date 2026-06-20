@@ -1389,6 +1389,20 @@ export default function App() {
                 {/* Decorative Accent Header Border */}
                 <div className="absolute top-0 right-0 left-0 h-2 bg-emerald-550" />
 
+                {/* Close Button X (ضربدر) */}
+                <button
+                  onClick={() => {
+                    setSubmitSuccess(null);
+                    setNationalCode("");
+                    setTrackingCode("");
+                    setPhoneNumber("");
+                  }}
+                  className="absolute top-4.5 left-4.5 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all cursor-pointer z-20"
+                  title="بستن"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
                 {/* Banner Brand Header */}
                 <div className="flex items-center gap-4 border-b border-slate-100 pb-4 mb-5">
                   <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
