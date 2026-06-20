@@ -116,6 +116,7 @@ export default function App() {
   });
   const [authError, setAuthError] = useState("");
   const [newSubNotification, setNewSubNotification] = useState<Submission | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Admin Panel States
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -357,8 +358,14 @@ export default function App() {
   };
 
   // Delete submission record
-  const handleDeleteSubmission = async (id: string) => {
-    if (!confirm("آیا از حذف این درخواست اطمینان دارید؟")) return;
+  const handleDeleteSubmission = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const executeDeleteSubmission = async () => {
+    if (!deleteConfirmId) return;
+    const id = deleteConfirmId;
+    setDeleteConfirmId(null);
 
     try {
       const response = await fetch(`/api/submissions/${id}`, {
@@ -1291,6 +1298,60 @@ export default function App() {
                   <X className="h-4 w-4" />
                   متوجه شدم، بستن این اعلان
                 </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Custom Delete Confirmation Modal */}
+        <AnimatePresence>
+          {deleteConfirmId && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setDeleteConfirmId(null)}
+                className="absolute inset-0 bg-slate-900/65 backdrop-blur-md"
+              />
+
+              {/* Modal Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="relative bg-white rounded-2xl shadow-2xl border border-rose-100 max-w-sm w-full p-6 text-right overflow-hidden z-[70]"
+              >
+                {/* Decorative Red Accent Ribbon */}
+                <div className="absolute top-0 right-0 left-0 h-1.5 bg-rose-500" />
+
+                <div className="flex items-start gap-3.5 mt-2">
+                  <div className="p-2.5 bg-rose-50 text-rose-500 rounded-xl shrink-0">
+                    <Trash2 className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800">حذف پرونده متقاضی</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      آیا از حذف کامل این پرونده ثبت شده اطمینان دارید؟ این عمل غیرقابل بازگشت است.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 mt-6">
+                  <button
+                    onClick={executeDeleteSubmission}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all text-center cursor-pointer"
+                  >
+                    بله، حذف شود
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer"
+                  >
+                    انصراف
+                  </button>
+                </div>
               </motion.div>
             </div>
           )}
