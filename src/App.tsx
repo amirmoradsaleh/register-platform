@@ -1258,7 +1258,7 @@ export default function App() {
                 {/* Confirm & Close Button */}
                 <button
                   onClick={() => setNewSubNotification(null)}
-                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-2xl text-xs transition-all shadow-lg hover:shadow-slate-200 active:scale-[0.99] cursor-pointer text-center flex items-center justify-center gap-1.5"
+                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl text-xs transition-all shadow-lg shadow-indigo-100 active:scale-[0.99] cursor-pointer text-center flex items-center justify-center gap-1.5"
                 >
                   <X className="h-4 w-4" />
                   متوجه شدم، بستن این اعلان
