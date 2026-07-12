@@ -19,6 +19,7 @@ interface Submission {
   createdAt: string;
   status: "pending" | "approved" | "rejected";
   adminNotes?: string;
+  description?: string;
 }
 
 // Ensure data file exists
@@ -79,7 +80,7 @@ const ADMIN_PASSWORD = "@Sorosh123#"; // In a real app we'd load this safely
 
 // API Route: Submit new data
 app.post("/api/submissions", (req, res) => {
-  const { nationalCode, trackingCode, phoneNumber } = req.body;
+  const { nationalCode, trackingCode, phoneNumber, description } = req.body;
 
   if (!nationalCode || !trackingCode || !phoneNumber) {
     return res.status(400).json({ error: "لطفاً تمامی فیلدها را وارد کنید" });
@@ -98,6 +99,14 @@ app.post("/api/submissions", (req, res) => {
     return res.status(400).json({ error: "کد رهگیری معتبر نیست" });
   }
 
+  // Word count check if description is provided
+  if (description && typeof description === "string") {
+    const wordCount = description.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount > 150) {
+      return res.status(400).json({ error: "سایر توضیحات نمی‌تواند بیشتر از ۱۵۰ کلمه باشد" });
+    }
+  }
+
   const submissions = readSubmissions();
 
   // Create new submission
@@ -108,7 +117,8 @@ app.post("/api/submissions", (req, res) => {
     phoneNumber: phoneNumber.trim(),
     createdAt: new Date().toISOString(),
     status: "pending",
-    adminNotes: ""
+    adminNotes: "",
+    description: description ? description.trim() : ""
   };
 
   submissions.unshift(newSubmission);

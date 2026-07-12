@@ -101,6 +101,7 @@ export default function App() {
   const [nationalCode, setNationalCode] = useState("");
   const [trackingCode, setTrackingCode] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [description, setDescription] = useState("");
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<Submission | null>(null);
@@ -218,6 +219,12 @@ export default function App() {
       return;
     }
 
+    const wordCount = description.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount > 150) {
+      setFormError("سایر توضیحات نمی‌تواند بیشتر از ۱۵۰ کلمه باشد.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -230,6 +237,7 @@ export default function App() {
           nationalCode: cleanNationalCode,
           trackingCode: cleanTrackingCode,
           phoneNumber: cleanPhoneNumber,
+          description: description.trim(),
         }),
       });
 
@@ -241,6 +249,7 @@ export default function App() {
         setNationalCode("");
         setTrackingCode("");
         setPhoneNumber("");
+        setDescription("");
       } else {
         setFormError(resData.error || "ثبت اطلاعات با خطا مواجه شد.");
       }
@@ -639,6 +648,27 @@ export default function App() {
                           value={trackingCode}
                           onChange={(e) => setTrackingCode(e.target.value)}
                           className="w-full px-4 py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold tracking-wide transition-all outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Field 4: Description (Optional) */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-semibold text-slate-600">
+                          سایر توضیحات (اختیاری)
+                        </label>
+                        <span className={`text-[10px] font-bold ${description.trim().split(/\s+/).filter(Boolean).length > 150 ? "text-rose-500" : "text-slate-400"}`}>
+                          {toPersianDigits(description.trim().split(/\s+/).filter(Boolean).length)} / ۱۵۰ کلمه
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <textarea
+                          placeholder="توضیحات تکمیلی خود را بنویسید..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={3}
+                          className="w-full px-4 py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl text-sm transition-all outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none"
                         />
                       </div>
                     </div>
@@ -1072,6 +1102,14 @@ export default function App() {
                                   {editingItem.trackingCode}
                                 </span>
                               </div>
+                              {editingItem.description && (
+                                <div className="border-t border-slate-200/60 pt-2 space-y-1 text-right">
+                                  <span className="text-slate-400 font-semibold block">سایر توضیحات بیمار:</span>
+                                  <div className="bg-white p-2 rounded border border-slate-150 text-[11px] text-slate-700 max-h-24 overflow-y-auto leading-relaxed whitespace-pre-wrap">
+                                    {editingItem.description}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             {/* Modify Status Select */}
