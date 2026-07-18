@@ -20,6 +20,7 @@ interface Submission {
   status: "pending" | "approved" | "rejected";
   adminNotes?: string;
   description?: string;
+  insurance?: string;
 }
 
 // Ensure data file exists
@@ -80,7 +81,7 @@ const ADMIN_PASSWORD = "@Sorosh123#"; // In a real app we'd load this safely
 
 // API Route: Submit new data
 app.post("/api/submissions", (req, res) => {
-  const { nationalCode, trackingCode, phoneNumber, description } = req.body;
+  const { nationalCode, trackingCode, phoneNumber, description, insurance } = req.body;
 
   if (!nationalCode || !trackingCode || !phoneNumber) {
     return res.status(400).json({ error: "لطفاً تمامی فیلدها را وارد کنید" });
@@ -118,7 +119,8 @@ app.post("/api/submissions", (req, res) => {
     createdAt: new Date().toISOString(),
     status: "pending",
     adminNotes: "",
-    description: description ? description.trim() : ""
+    description: description ? description.trim() : "",
+    insurance: insurance ? insurance.trim() : ""
   };
 
   submissions.unshift(newSubmission);

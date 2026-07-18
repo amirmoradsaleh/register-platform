@@ -22,7 +22,8 @@ import {
   Plus,
   Loader2,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  ShieldAlert
 } from "lucide-react";
 import { Submission, TabType } from "./types";
 
@@ -71,6 +72,39 @@ function toPersianDigits(num: string | number): string {
   return str.replace(/[0-9]/g, (w) => persian[+w]);
 }
 
+// Play sound when new submission is received (Requirement: sound notification)
+function playNotificationSound() {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+    
+    // Play a nice high-pitched pleasant chime (C5 -> E5 -> G5)
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+    notes.forEach((freq, idx) => {
+      const startTime = now + idx * 0.08;
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, startTime);
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.12, startTime + 0.03);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc.start(startTime);
+      osc.stop(startTime + 0.3);
+    });
+  } catch (error) {
+    console.error("Failed to play notification sound:", error);
+  }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     if (typeof window !== "undefined") {
@@ -102,6 +136,7 @@ export default function App() {
   const [trackingCode, setTrackingCode] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [description, setDescription] = useState("");
+  const [insurance, setInsurance] = useState("");
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<Submission | null>(null);
@@ -238,6 +273,7 @@ export default function App() {
           trackingCode: cleanTrackingCode,
           phoneNumber: cleanPhoneNumber,
           description: description.trim(),
+          insurance: insurance,
         }),
       });
 
@@ -250,6 +286,7 @@ export default function App() {
         setTrackingCode("");
         setPhoneNumber("");
         setDescription("");
+        setInsurance("");
       } else {
         setFormError(resData.error || "ثبت اطلاعات با خطا مواجه شد.");
       }
@@ -292,6 +329,13 @@ export default function App() {
       setNewSubNotification(null);
     }
   }, [activeTab, isAdminAuthenticated]);
+
+  // Play sound when new notification is received
+  useEffect(() => {
+    if (newSubNotification && activeTab === "admin" && isAdminAuthenticated) {
+      playNotificationSound();
+    }
+  }, [newSubNotification, activeTab, isAdminAuthenticated]);
 
   // Save notification as marked seen to avoid repeating on reload/entry
   const handleCloseNotification = () => {
@@ -670,6 +714,47 @@ export default function App() {
                           rows={3}
                           className="w-full px-4 py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl text-sm transition-all outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none"
                         />
+                      </div>
+                    </div>
+
+                    {/* Insurance Field (Optional) */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-semibold text-slate-600 block">
+                          نوع بیمه (اختیاری)
+                        </label>
+                        {insurance && (
+                          <button
+                            type="button"
+                            onClick={() => setInsurance("")}
+                            className="text-[10px] text-rose-500 hover:text-rose-600 font-bold transition-all cursor-pointer"
+                          >
+                            حذف انتخاب
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "tamin", label: "تأمین اجتماعی" },
+                          { id: "khadamat", label: "خدمات درمانی" },
+                          { id: "niroo", label: "نیروهای مسلح" },
+                        ].map((opt) => {
+                          const isSelected = insurance === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setInsurance(insurance === opt.id ? "" : opt.id)}
+                              className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                                isSelected
+                                  ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-sm ring-2 ring-indigo-100"
+                                  : "bg-slate-50/50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-800"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -1102,6 +1187,16 @@ export default function App() {
                                   {editingItem.trackingCode}
                                 </span>
                               </div>
+                              {editingItem.insurance && (
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400 font-medium">نوع بیمه:</span>
+                                  <span className="font-bold text-slate-800">
+                                    {editingItem.insurance === "tamin" ? "تأمین اجتماعی" : 
+                                     editingItem.insurance === "khadamat" ? "خدمات درمانی" : 
+                                     editingItem.insurance === "niroo" ? "نیروهای مسلح" : editingItem.insurance}
+                                  </span>
+                                </div>
+                              )}
                               {editingItem.description && (
                                 <div className="border-t border-slate-200/60 pt-2 space-y-1 text-right">
                                   <span className="text-slate-400 font-semibold block">سایر توضیحات بیمار:</span>
@@ -1262,6 +1357,20 @@ export default function App() {
                       <ClipboardCheck className="h-4 w-4 text-indigo-600" />
                     </span>
                   </div>
+
+                  {newSubNotification.insurance && (
+                    <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between">
+                      <span className="text-sm font-black text-slate-800">
+                        {newSubNotification.insurance === "tamin" ? "تأمین اجتماعی" : 
+                         newSubNotification.insurance === "khadamat" ? "خدمات درمانی" : 
+                         newSubNotification.insurance === "niroo" ? "نیروهای مسلح" : newSubNotification.insurance}
+                      </span>
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                        نوع بیمه بیمار
+                        <ShieldAlert className="h-4 w-4 text-amber-550" />
+                      </span>
+                    </div>
+                  )}
 
                 </div>
 
@@ -1477,6 +1586,20 @@ export default function App() {
                       <ClipboardCheck className="h-4 w-4 text-indigo-600" />
                     </span>
                   </div>
+
+                  {submitSuccess.insurance && (
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 flex items-center justify-between">
+                      <span className="text-sm font-black text-slate-800">
+                        {submitSuccess.insurance === "tamin" ? "تأمین اجتماعی" : 
+                         submitSuccess.insurance === "khadamat" ? "خدمات درمانی" : 
+                         submitSuccess.insurance === "niroo" ? "نیروهای مسلح" : submitSuccess.insurance}
+                      </span>
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                        نوع بیمه انتخابی
+                        <ShieldAlert className="h-4 w-4 text-amber-550" />
+                      </span>
+                    </div>
+                  )}
 
                 </div>
 

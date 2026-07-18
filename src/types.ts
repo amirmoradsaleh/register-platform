@@ -7,6 +7,7 @@ export interface Submission {
   status: "pending" | "approved" | "rejected";
   adminNotes?: string;
   description?: string;
+  insurance?: string;
 }
 
 export type TabType = "user" | "admin";
