@@ -696,27 +696,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Field 4: Description (Optional) */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-semibold text-slate-600">
-                          سایر توضیحات (اختیاری)
-                        </label>
-                        <span className={`text-[10px] font-bold ${description.trim().split(/\s+/).filter(Boolean).length > 150 ? "text-rose-500" : "text-slate-400"}`}>
-                          {toPersianDigits(description.trim().split(/\s+/).filter(Boolean).length)} / ۱۵۰ کلمه
-                        </span>
-                      </div>
-                      <div className="relative">
-                        <textarea
-                          placeholder="توضیحات تکمیلی خود را بنویسید..."
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          rows={3}
-                          className="w-full px-4 py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl text-sm transition-all outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none"
-                        />
-                      </div>
-                    </div>
-
                     {/* Insurance Field (Optional) */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center">
@@ -755,6 +734,27 @@ export default function App() {
                             </button>
                           );
                         })}
+                      </div>
+                    </div>
+
+                    {/* Field 4: Description (Optional) */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-semibold text-slate-600">
+                          سایر توضیحات (اختیاری)
+                        </label>
+                        <span className={`text-[10px] font-bold ${description.trim().split(/\s+/).filter(Boolean).length > 150 ? "text-rose-500" : "text-slate-400"}`}>
+                          {toPersianDigits(description.trim().split(/\s+/).filter(Boolean).length)} / ۱۵۰ کلمه
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <textarea
+                          placeholder="توضیحات تکمیلی خود را بنویسید..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={3}
+                          className="w-full px-4 py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl text-sm transition-all outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none"
+                        />
                       </div>
                     </div>
 
