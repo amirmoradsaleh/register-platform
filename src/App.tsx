@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   User, 
@@ -72,33 +72,64 @@ function toPersianDigits(num: string | number): string {
   return str.replace(/[0-9]/g, (w) => persian[+w]);
 }
 
-// Play sound when new submission is received (Requirement: sound notification)
+// Play gentle, soothing, warm chime notification sound tailored for medical & clinical settings
 function playNotificationSound() {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    
+    const ctx = new AudioContextClass();
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+    
     const now = ctx.currentTime;
     
-    // Play a nice high-pitched pleasant chime (C5 -> E5 -> G5)
-    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
-    notes.forEach((freq, idx) => {
-      const startTime = now + idx * 0.08;
+    // Soft, soothing major-7th pentatonic harmony (G4 -> D5 -> F#5 -> B5) with low piercing frequencies
+    // Soft, calming tones designed to avoid alarming patients or medical staff
+    const tones = [
+      { freq: 392.00, start: 0.00, duration: 0.55, volume: 0.12 }, // G4 (Warm base)
+      { freq: 587.33, start: 0.09, duration: 0.65, volume: 0.14 }, // D5 (Middle harmony)
+      { freq: 739.99, start: 0.18, duration: 0.75, volume: 0.12 }, // F#5 (Soothing warmth)
+      { freq: 987.77, start: 0.27, duration: 0.90, volume: 0.08 }, // B5 (Soft gentle finish)
+    ];
+
+    tones.forEach((t) => {
+      const startTime = now + t.start;
+      
+      // Warm fundamental sine wave
       const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
+      const gain = ctx.createGain();
       
       osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, startTime);
+      osc.frequency.setValueAtTime(t.freq, startTime);
       
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.12, startTime + 0.03);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+      // Gentle attack (30ms) to avoid click/pop, long smooth decay
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(t.volume, startTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + t.duration);
       
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
       
       osc.start(startTime);
-      osc.stop(startTime + 0.3);
+      osc.stop(startTime + t.duration + 0.05);
+
+      // Very soft, warm sub-tone (sine octave below) for resonance
+      const subOsc = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      subOsc.type = "sine";
+      subOsc.frequency.setValueAtTime(t.freq / 2, startTime);
+      
+      subGain.gain.setValueAtTime(0, startTime);
+      subGain.gain.linearRampToValueAtTime(t.volume * 0.2, startTime + 0.04);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, startTime + (t.duration * 0.7));
+      
+      subOsc.connect(subGain);
+      subGain.connect(ctx.destination);
+      
+      subOsc.start(startTime);
+      subOsc.stop(startTime + t.duration);
     });
   } catch (error) {
     console.error("Failed to play notification sound:", error);
@@ -152,6 +183,7 @@ export default function App() {
   });
   const [authError, setAuthError] = useState("");
   const [newSubNotification, setNewSubNotification] = useState<Submission | null>(null);
+  const playedSoundForIdRef = useRef<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
@@ -330,9 +362,42 @@ export default function App() {
     }
   }, [activeTab, isAdminAuthenticated]);
 
-  // Play sound when new notification is received
+  // Unlock WebAudio Context on user interaction so notification sound plays reliably across browsers
   useEffect(() => {
-    if (newSubNotification && activeTab === "admin" && isAdminAuthenticated) {
+    const unlockAudio = () => {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const dummyCtx = new AudioContextClass();
+          if (dummyCtx.state === "suspended") {
+            dummyCtx.resume();
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+
+    window.addEventListener("click", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, []);
+
+  // Play sound strictly ONCE per distinct new submission notification
+  useEffect(() => {
+    if (
+      newSubNotification &&
+      newSubNotification.id !== playedSoundForIdRef.current &&
+      activeTab === "admin" &&
+      isAdminAuthenticated
+    ) {
+      playedSoundForIdRef.current = newSubNotification.id;
       playNotificationSound();
     }
   }, [newSubNotification, activeTab, isAdminAuthenticated]);
