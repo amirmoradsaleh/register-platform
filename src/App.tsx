@@ -182,7 +182,15 @@ export default function App() {
     return saved === "@Sorosh123#";
   });
   const [authError, setAuthError] = useState("");
-  const [newSubNotification, setNewSubNotification] = useState<Submission | null>(null);
+  const [seenSubmissionIds, setSeenSubmissionIds] = useState<string[]>(() => {
+    const rawSeen = localStorage.getItem("seen_submission_ids");
+    if (!rawSeen) return [];
+    try {
+      return JSON.parse(rawSeen);
+    } catch (e) {
+      return [];
+    }
+  });
   const playedSoundForIdRef = useRef<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -190,6 +198,15 @@ export default function App() {
   // Admin Panel States
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+
+  // Compute unseen notifications ordered by timestamp descending (latest/newest arrival first)
+  const unseenSubmissions = React.useMemo(() => {
+    if (activeTab !== "admin" || !isAdminAuthenticated) return [];
+    const unseen = submissions.filter((s) => !seenSubmissionIds.includes(s.id));
+    return unseen.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [submissions, seenSubmissionIds, activeTab, isAdminAuthenticated]);
+
+  const currentNotification = unseenSubmissions.length > 0 ? unseenSubmissions[0] : null;
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingItem, setEditingItem] = useState<Submission | null>(null);
@@ -216,32 +233,15 @@ export default function App() {
       const resData = await response.json();
       if (response.ok && resData.success) {
         const newData = resData.data as Submission[];
-        setSubmissions((prev) => {
-          // Detect newly added items (including those added while admin was away)
-          if (activeTab === "admin" && isAdminAuthenticated) {
-            const rawSeen = localStorage.getItem("seen_submission_ids");
-            let seenIds: string[] = [];
-            try {
-              seenIds = rawSeen ? JSON.parse(rawSeen) : [];
-            } catch (e) {
-              seenIds = [];
-            }
+        setSubmissions(newData);
 
-            if (!rawSeen) {
-              // First time: initialize seenIds with all current IDs so we don't notify for old records
-              const currentIds = newData.map((s) => s.id);
-              localStorage.setItem("seen_submission_ids", JSON.stringify(currentIds));
-            } else {
-              // Find submissions that are unseen
-              const unseen = newData.filter((s) => !seenIds.includes(s.id));
-              if (unseen.length > 0) {
-                // Show the newest unseen submission
-                setNewSubNotification(unseen[0]);
-              }
-            }
-          }
-          return newData;
-        });
+        // First time initialization if seen_submission_ids isn't set yet
+        const rawSeen = localStorage.getItem("seen_submission_ids");
+        if (!rawSeen) {
+          const initialSeen = newData.map((s) => s.id);
+          localStorage.setItem("seen_submission_ids", JSON.stringify(initialSeen));
+          setSeenSubmissionIds(initialSeen);
+        }
       } else {
         setAuthError(resData.error || "خطا در بارگذاری اطلاعات");
         setIsAdminAuthenticated(false);
@@ -355,13 +355,6 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, [isAdminAuthenticated, adminPassword]);
 
-  // Clear new submission notification modal if user switches the active tab or logs out
-  useEffect(() => {
-    if (activeTab !== "admin" || !isAdminAuthenticated) {
-      setNewSubNotification(null);
-    }
-  }, [activeTab, isAdminAuthenticated]);
-
   // Unlock WebAudio Context on user interaction so notification sound plays reliably across browsers
   useEffect(() => {
     const unlockAudio = () => {
@@ -389,34 +382,29 @@ export default function App() {
     };
   }, []);
 
-  // Play sound strictly ONCE per distinct new submission notification
+  // Play sound strictly ONCE per distinct new submission notification in the queue
   useEffect(() => {
     if (
-      newSubNotification &&
-      newSubNotification.id !== playedSoundForIdRef.current &&
+      currentNotification &&
+      currentNotification.id !== playedSoundForIdRef.current &&
       activeTab === "admin" &&
       isAdminAuthenticated
     ) {
-      playedSoundForIdRef.current = newSubNotification.id;
+      playedSoundForIdRef.current = currentNotification.id;
       playNotificationSound();
     }
-  }, [newSubNotification, activeTab, isAdminAuthenticated]);
+  }, [currentNotification, activeTab, isAdminAuthenticated]);
 
-  // Save notification as marked seen to avoid repeating on reload/entry
+  // Mark current notification as seen (one by one) to advance to the next unseen notification
   const handleCloseNotification = () => {
-    if (newSubNotification) {
-      const rawSeen = localStorage.getItem("seen_submission_ids");
-      let seenIds: string[] = [];
-      try {
-        seenIds = rawSeen ? JSON.parse(rawSeen) : [];
-      } catch (e) {
-        seenIds = [];
-      }
-      
-      const allIds = new Set([...seenIds, newSubNotification.id, ...submissions.map((s) => s.id)]);
-      localStorage.setItem("seen_submission_ids", JSON.stringify(Array.from(allIds)));
-    }
-    setNewSubNotification(null);
+    if (!currentNotification) return;
+    const targetId = currentNotification.id;
+
+    setSeenSubmissionIds((prev) => {
+      const nextSeen = Array.from(new Set([...prev, targetId]));
+      localStorage.setItem("seen_submission_ids", JSON.stringify(nextSeen));
+      return nextSeen;
+    });
   };
 
   // Seed mockup elements to make it lively
@@ -1356,9 +1344,9 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* New Submission Notification Alert Popup (Requirement 4) - Large Centered Modal with Interaction Blocker Backdrop */}
+        {/* New Submission Notification Alert Popup - Large Centered Modal with Interaction Blocker Backdrop */}
         <AnimatePresence>
-          {newSubNotification && activeTab === "admin" && isAdminAuthenticated && (
+          {currentNotification && activeTab === "admin" && isAdminAuthenticated && (
             <div className="fixed inset-0 z-55 flex items-center justify-center p-4">
               {/* Interaction blocker backdrop */}
               <motion.div
@@ -1370,6 +1358,7 @@ export default function App() {
 
               {/* Large Centered Modal Box */}
               <motion.div
+                key={currentNotification.id}
                 initial={{ opacity: 0, scale: 0.92, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -1380,22 +1369,30 @@ export default function App() {
                 <div className="absolute top-0 right-0 left-0 h-2 bg-emerald-500" />
 
                 {/* Banner Header */}
-                <div className="flex items-center gap-4 border-b border-slate-100 pb-4 mb-5">
-                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
-                    <CheckCircle className="h-7 w-7 animate-bounce" />
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
+                      <CheckCircle className="h-7 w-7 animate-bounce" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-slate-800">دریافت پرونده جدید بیمار!</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">یک تراکنش جدید به پایگاه داده اضافه شد</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-800">دریافت پرونده جدید بیمار!</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">یک تراکنش جدید با موفقیت به پایگاه داده اضافه شد</p>
-                  </div>
+
+                  {unseenSubmissions.length > 1 && (
+                    <div className="bg-emerald-100/90 text-emerald-800 text-xs font-black px-3 py-1.5 rounded-full border border-emerald-200/80 shrink-0 shadow-xs">
+                      اعلان {toPersianDigits(1)} از {toPersianDigits(unseenSubmissions.length)}
+                    </div>
+                  )}
                 </div>
 
-                {/* Displaying all 3 Variables */}
+                {/* Displaying Variables */}
                 <div className="space-y-3.5 mb-6">
                   
                   <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between">
                     <span className="text-base font-black text-slate-800 select-all">
-                      {toPersianDigits(newSubNotification.nationalCode)}
+                      {toPersianDigits(currentNotification.nationalCode)}
                     </span>
                     <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
                       کد ملی بیمار
@@ -1405,17 +1402,17 @@ export default function App() {
 
                   <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between">
                     <span className="text-base font-black text-slate-800 select-all">
-                      {toPersianDigits(newSubNotification.phoneNumber)}
+                      {toPersianDigits(currentNotification.phoneNumber)}
                     </span>
                     <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-                      تلفن همراه همراه
+                      تلفن همراه بیمار
                       <Phone className="h-4 w-4 text-emerald-500" />
                     </span>
                   </div>
 
                   <div className="bg-indigo-50/55 p-4 rounded-2xl border border-indigo-100 flex items-center justify-between">
                     <span className="text-[17px] font-mono text-indigo-700 font-extrabold select-all tracking-wider">
-                      {newSubNotification.trackingCode}
+                      {currentNotification.trackingCode}
                     </span>
                     <span className="text-xs font-extrabold text-indigo-700 flex items-center gap-1.5">
                       کد رهگیری اختصاصی
@@ -1423,17 +1420,26 @@ export default function App() {
                     </span>
                   </div>
 
-                  {newSubNotification.insurance && (
+                  {currentNotification.insurance && (
                     <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between">
                       <span className="text-sm font-black text-slate-800">
-                        {newSubNotification.insurance === "tamin" ? "تأمین اجتماعی" : 
-                         newSubNotification.insurance === "khadamat" ? "خدمات درمانی" : 
-                         newSubNotification.insurance === "niroo" ? "نیروهای مسلح" : newSubNotification.insurance}
+                        {currentNotification.insurance === "tamin" ? "تأمین اجتماعی" : 
+                         currentNotification.insurance === "khadamat" ? "خدمات درمانی" : 
+                         currentNotification.insurance === "niroo" ? "نیروهای مسلح" : currentNotification.insurance}
                       </span>
                       <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
                         نوع بیمه بیمار
                         <ShieldAlert className="h-4 w-4 text-amber-550" />
                       </span>
+                    </div>
+                  )}
+
+                  {currentNotification.description && (
+                    <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 text-right">
+                      <span className="text-xs font-bold text-slate-500 block mb-1">سایر توضیحات:</span>
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                        {currentNotification.description}
+                      </p>
                     </div>
                   )}
 
@@ -1445,7 +1451,10 @@ export default function App() {
                   className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl text-xs transition-all shadow-lg shadow-indigo-100 active:scale-[0.99] cursor-pointer text-center flex items-center justify-center gap-1.5"
                 >
                   <X className="h-4 w-4" />
-                  متوجه شدم، بستن این اعلان
+                  {unseenSubmissions.length > 1 
+                    ? `متوجه شدم، بستن این اعلان (${toPersianDigits(unseenSubmissions.length - 1)} اعلان دیگر باقی مانده)`
+                    : "متوجه شدم، بستن اعلان"
+                  }
                 </button>
               </motion.div>
             </div>
